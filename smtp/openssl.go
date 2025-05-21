@@ -169,7 +169,7 @@ func SendMail(
 	// Sign message if desired, indicated by input parameters
 	if len(fromCertPath) > 0 || len(fromKeyPath) > 0 {
 		var errSign error
-		messageRaw, errSign = signMessage(opensslPath, fromCertPath, fromKeyPath, messageRaw)
+		messageRaw, errSign = signMessage(opensslPath, fromCertPath, fromKeyPath, from.Address, toAddrs, subject, messageRaw)
 		if errSign != nil {
 			return fmt.Errorf("could not sign message: %s", errSign)
 		}
@@ -383,6 +383,9 @@ func signMessage(
 	openSslPath string,
 	fromCert string, // Path to certificate
 	fromKey string, // Path to key
+	sender string,
+	recipients []string,
+	subject string,
 	message []byte,
 ) ([]byte, error) {
 
@@ -395,7 +398,12 @@ func signMessage(
 	}
 
 	// Create the command for signing the message
-	argsSign := []string{"smime", "-sign", "-signer", fromCert, "-inkey", fromKey}
+	argsSign := []string{"smime", "-sign", "-signer", fromCert, "-inkey", fromKey, "-from",
+		sender,
+		"-to",
+		strings.Join(recipients, ", "),
+		"-subject",
+		subject}
 	cmdSign := exec.Command(openSslPath, argsSign...)
 
 	// Set the correct i/o buffers. Stream the message to stdin rather than saving it to a file.
